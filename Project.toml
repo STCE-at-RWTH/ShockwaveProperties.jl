@@ -9,6 +9,7 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulChainRules = "f31437dd-25a7-4345-875f-756556e6935d"
 
+
 [compat]
 Unitful = "1"
 UnitfulChainRules = "0.1"
@@ -17,6 +18,7 @@ julia = "1.6"
 [extras]
 ChainRulesTestUtils = "cdddcdb0-9152-4a09-a978-84456f9df70a"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [targets]
-test = ["Test", "ChainRulesTestUtils"]
+test = ["Test", "ChainRulesTestUtils", "Zygote"]

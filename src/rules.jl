@@ -3,7 +3,7 @@
 using ChainRulesCore
 using UnitfulChainRules
 
-ChainRulesCore.debug_mode() = true
+# ChainRulesCore.debug_mode() = true
 
 function ChainRulesCore.rrule(::RuleConfig{>:HasReverseMode}, ::Type{ConservedState{U1, U2, U3}}, ρ, ρv, ρE) where {U1, U2, U3}
     ConservedState_back(Δs) = begin
@@ -11,6 +11,8 @@ function ChainRulesCore.rrule(::RuleConfig{>:HasReverseMode}, ::Type{ConservedSt
     end
     return ConservedState{U1, U2, U3}(ρ, ρv, ρE), ConservedState_back
 end
+
+
 
 # function ChainRulesCore.rrule(::typeof(speed_of_sound), )
 
