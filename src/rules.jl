@@ -1,16 +1,18 @@
 # rrules for AD
-
+using Unitful
 using ChainRulesCore
 using UnitfulChainRules
 
 # ChainRulesCore.debug_mode() = true
 
-function ChainRulesCore.rrule(::RuleConfig{>:HasReverseMode}, ::Type{ConservedState{U1, U2, U3}}, ρ, ρv, ρE) where {U1, U2, U3}
+function ChainRulesCore.rrule(::RuleConfig{>:HasReverseMode}, ::Type{ConservationProps{U1, U2, U3}}, ρ::U1, ρv::Vector{U2}, ρE::U3) where {U1<:MomentumDensity, U2, U3}
     ConservedState_back(Δs) = begin
         return NoTangent(), Δs.ρ, Δs.ρv, Δs.ρE
     end
     return ConservedState{U1, U2, U3}(ρ, ρv, ρE), ConservedState_back
 end
+
+function ChainRulesCore.rrule(::RuleConfig{>:HasReverseMode}, ::Type{ConservationProps{U1, U2, U3}}, s::PrimitiveProps{S1, S2}, gas::CaloricallyPerfectGas) 
 
 
 
