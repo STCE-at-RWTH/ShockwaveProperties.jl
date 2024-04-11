@@ -107,7 +107,7 @@ These completely determine the state of a calorically perfect gas.
 """
 struct PrimitiveProps{U1<:Density,U2<:Temperature}
     ρ::U1
-    M::{Float64}
+    M::Vector{Float64}
     T::U2
 end
 PrimitiveState = PrimitiveProps
