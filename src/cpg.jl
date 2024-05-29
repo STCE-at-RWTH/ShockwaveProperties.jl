@@ -292,10 +292,14 @@ pressure(ρ::Density, T::Temperature; gas::CaloricallyPerfectGas) = ρ * gas.R *
 
 """
     pressure(ρe; gas::CaloricallyPerfectGas)
+    pressure(ρ, ρv, ρE; gas::CaloricallyPerfectGas)
 Compute the pressure in a calorically perfect gas from its static internal energy density.
 """
 pressure(ρe; gas::CaloricallyPerfectGas) = (gas.γ - 1) * Quantity(ρe, _units_ρE)
 pressure(ρe::EnergyDensity; gas::CaloricallyPerfectGas) = (gas.γ - 1) * ρe
+function pressure(ρ, ρv::AbstractVector, ρE; gas::CaloricallyPerfectGas) 
+    return pressure(static_internal_energy_density(ρ, ρv, ρE); gas)
+end
 
 """
     pressure(state; gas::CaloricallyPerfectGas)
@@ -334,14 +338,28 @@ end
 speed_of_sound(ρ::Density, P::Pressure; gas::CaloricallyPerfectGas) = sqrt(gas.γ * P / ρ)
 
 """
-    speed_of_sound(state::Union{ConservedState, PrimitiveState}; gas::CaloricallyPerfectGas)
+    speed_of_sound(ρ, ρv, ρE; gas::CaloricallyPerfectGas)
+
+Compute the speed of sound from conserved state properties.
+"""
+function speed_of_sound(ρ, ρv::AbstractVector, ρE; gas::CaloricallyPerfectGas)
+    return speed_of_sound(ρ, pressure(ρ, ρv, ρE; gas); gas)
+end
+
+"""
+    speed_of_sound(state; gas::CaloricallyPerfectGas)
 Compute the speed of sound in a gas at a given state. 
 
 *We assume that the gas is a non-dispersive medium.*
 """
-function speed_of_sound(state; gas::CaloricallyPerfectGas)
-    return speed_of_sound(temperature(state; gas); gas)
+function speed_of_sound(s::PrimitiveProps; gas::CaloricallyPerfectGas)
+    return speed_of_sound(temperature(s; gas); gas)
 end
+
+function speed_of_sound(u::ConservedProps; gas::CaloricallyPerfectGas)
+    return speed_of_sound(density(u), pressure(u; gas); gas)
+end
+
 
 ## CONVERT PROPERTY REPRESENTATIONS
 

@@ -31,7 +31,9 @@ using Unitful
         (v1, v2) = test_items[i]
         @test pressure(v1; gas = DRY_AIR) ≈ pressure(v2; gas = DRY_AIR)
         @test temperature(v1; gas = DRY_AIR) ≈ temperature(v2; gas = DRY_AIR)
-        @test all(momentum_density(v1; gas=DRY_AIR) .≈ momentum_density(v2; gas=DRY_AIR))
+        @test all(
+            momentum_density(v1; gas = DRY_AIR) .≈ momentum_density(v2; gas = DRY_AIR),
+        )
         @test all(velocity(v1; gas = DRY_AIR) .≈ velocity(v2; gas = DRY_AIR))
         @test (
             specific_internal_energy(v1; gas = DRY_AIR) ≈
@@ -114,4 +116,23 @@ end
         # F(u_l)⋅n̂ - F(u_r)⋅n̂ = 0 ⟹ F(u_l)⋅n̂ = F(u_r)⋅n̂ 
         @test all(F(u_L) * n .≈ F(u_R) * n)
     end
+end
+
+@testset "Speed of Sound" begin
+    gas = DRY_AIR
+    s = PrimitiveProps(1.225, [2.0, 0.0], 300.0)
+    u = ConservedProps(s; gas)
+
+    a_s = speed_of_sound(s; gas)
+    a_u = speed_of_sound(u; gas)
+
+    a_s_pressure = speed_of_sound(density(s), pressure(s; gas); gas)
+    a_u_pressure = speed_of_sound(density(u), pressure(u; gas); gas)
+
+    a_s_ie = speed_of_sound(density(s), momentum_density(s; gas), total_internal_energy_density(s; gas); gas)
+    a_u_ie = speed_of_sound(density(u), momentum_density(u), total_internal_energy_density(u); gas)
+
+    @test a_s ≈ a_u
+    @test a_s_pressure ≈ a_u_pressure
+    @test a_s_ie ≈ a_u_ie
 end
