@@ -5,29 +5,45 @@ using Unitful
 
 @testset "Dimensional Analysis" begin
     # giving different units shouldn't mess with the actual results
+    # these are the same state
     s1 = PrimitiveProps(1.225, [2.0, 0.0], 300.0)
-    s2 = PrimitiveProps(0.002376892407u"slug/ft^3", [2.0, 1.0], 540.0u"Ra")
-    u1 = ConservationProps(s1; gas = DRY_AIR)
-    u2 = ConservationProps(s2; gas = DRY_AIR)
+    s2 = PrimitiveProps(0.002376892407u"slug/ft^3", [2.0, 0.0], 540.0u"Ra")
+    u1 = ConservedProps(s1; gas = DRY_AIR)
+    u2 = ConservedProps(s2; gas = DRY_AIR)
     #check dimensions
     for v ∈ (s1, s2, u1, u2)
         @test pressure(v; gas = DRY_AIR) isa Unitful.Pressure
         @test temperature(v; gas = DRY_AIR) isa Unitful.Temperature
-        @test internal_energy(v; gas = DRY_AIR) isa ShockwaveProperties.SpecificEnergy
+        @test (
+            specific_internal_energy(v; gas = DRY_AIR) isa
+            ShockwaveProperties.SpecificEnergy
+        )
+        @test (
+            total_internal_energy_density(v; gas = DRY_AIR) isa
+            ShockwaveProperties.EnergyDensity
+        )
         @test speed_of_sound(v; gas = DRY_AIR) isa Unitful.Velocity
     end
     # check equivalency between primitive/conserved
-    for (v1, v2) ∈ ((s1, u2), (s2, u1))
+    # cross test with unit change as well
+    test_items = ((s1, u1), (s2, u2), (s1, u2), (s2, u1))
+    @testset "Pairwise Equivalency $i" for i ∈ eachindex(test_items)
+        (v1, v2) = test_items[i]
         @test pressure(v1; gas = DRY_AIR) ≈ pressure(v2; gas = DRY_AIR)
         @test temperature(v1; gas = DRY_AIR) ≈ temperature(v2; gas = DRY_AIR)
-        @test internal_energy(v1; gas = DRY_AIR) ≈ internal_energy(v2; gas = DRY_AIR)
+        @test all(momentum_density(v1; gas=DRY_AIR) .≈ momentum_density(v2; gas=DRY_AIR))
+        @test all(velocity(v1; gas = DRY_AIR) .≈ velocity(v2; gas = DRY_AIR))
+        @test (
+            specific_internal_energy(v1; gas = DRY_AIR) ≈
+            specific_internal_energy(v2; gas = DRY_AIR)
+        )
         @test speed_of_sound(v1; gas = DRY_AIR) ≈ speed_of_sound(v2; gas = DRY_AIR)
     end
 end
 
 @testset "Convert Primitve ↔ Conserved" begin
     s1 = PrimitiveProps(1.225, [2.0, 0.0], 300.0)
-    u = ConservationProps(s1; gas = DRY_AIR)
+    u = ConservedProps(s1; gas = DRY_AIR)
     s2 = PrimitiveProps(u; gas = DRY_AIR)
     @test s1.ρ ≈ s2.ρ
     @test s1.M ≈ s2.M
@@ -51,7 +67,7 @@ end
               pressure(sR; gas = DRY_AIR)
     end
 
-    uL = ConservationProps(sL; gas = DRY_AIR)
+    uL = ConservedProps(sL; gas = DRY_AIR)
     uL_nounits = state_to_vector(uL)
     uR = state_behind(uL, n, t; gas = DRY_AIR)
     uR_nounits = conserved_state_behind(uL_nounits, n, t; gas = DRY_AIR)
@@ -60,9 +76,12 @@ end
         @test uR_nounits[1] ≈ ustrip(uR.ρ)
         @test all(uR_nounits[2:end-1] .≈ ustrip.(uR.ρv))
         @test uR_nounits[end] ≈ ustrip(uR.ρE)
-        ρe_nounits =
-            internal_energy_density(uR_nounits[1], uR_nounits[2:end-1], uR_nounits[end])
-        @test ρe_nounits ≈ ustrip(internal_energy_density(uR))
+        ρe_nounits = static_internal_energy_density(
+            uR_nounits[1],
+            uR_nounits[2:end-1],
+            uR_nounits[end],
+        )
+        @test ρe_nounits ≈ ustrip(static_internal_energy_density(uR))
         @test pressure(ρe_nounits; gas = DRY_AIR) ≈ pressure(uR; gas = DRY_AIR)
     end
 
@@ -76,7 +95,7 @@ end
 end
 
 # flux for the euler equations
-function F(u::ConservationProps)
+function F(u::ConservedProps)
     v = u.ρv / u.ρ # velocity
     P = pressure(u; gas = DRY_AIR)
     return vcat(u.ρv', (u.ρv .* v' + I * P), (v .* (u.ρE + P))') # stack row vectors
@@ -84,7 +103,7 @@ end
 
 @testset "Rankine-Hugoniot Condition" begin
     free_stream = PrimitiveProps(1.225, [2.0, 0.0], 300.0)
-    u_L = ConservationProps(free_stream; gas = DRY_AIR)
+    u_L = ConservedProps(free_stream; gas = DRY_AIR)
     # restricted domain here because formula from Anderson&Anderson
     # breaks down near β = 0
     # TODO investigate this.

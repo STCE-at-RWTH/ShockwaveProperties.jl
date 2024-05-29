@@ -75,39 +75,36 @@ end
 Computes the gas state behind a shockwave.
 The outward (away from body) normal to the shockwave is ``n̂`` and the tangent to the shockwave is ``t̂``.
 """
-function state_behind(
-    state_L::ConservationProps,
-    n̂,
-    t̂;
-    gas::CaloricallyPerfectGas = DRY_AIR,
-)
+function state_behind(uL::ConservedProps, n̂, t̂; gas::CaloricallyPerfectGas = DRY_AIR)
     @assert ≈(t̂ ⋅ n̂, 0.0, atol = eps(Float64)) "tangent and normal vectors should be normal to each other."
-    M_L = state_L.ρv / (state_L.ρ * speed_of_sound(state_L; gas = gas))
-    ρ_R = state_L.ρ * shock_density_ratio(M_L, n̂; gas = gas)
+    M_L = mach_number(uL; gas = gas)
+    ρ_R = uL.ρ * shock_density_ratio(M_L, n̂; gas = gas)
     # momentum change
-    ρv_n_R = (state_L.ρv ⋅ n̂) * shock_normal_momentum_ratio(M_L, n̂; gas = gas)
-    ρv_t_R = (state_L.ρv ⋅ t̂) * shock_density_ratio(M_L, n̂; gas = gas)
+    ρv_n_R = (momentum_density(uL; gas=gas) ⋅ n̂) * shock_normal_momentum_ratio(M_L, n̂; gas = gas)
+    # mach number component constant in tangential direction
+    ρv_t_R = (momentum_density(uL; gas=gas) ⋅ t̂) * shock_density_ratio(M_L, n̂; gas = gas)
     ρv_R = ρv_n_R * n̂ + ρv_t_R * t̂
     # total internal energy change
-    ρe_L = internal_energy_density(state_L)
+    ρe_L = static_internal_energy_density(uL)
     # e = cT
     ρe_R =
         ρe_L *
         shock_density_ratio(M_L, n̂; gas = gas) *
         shock_temperature_ratio(M_L, n̂; gas = gas)
     ρE_R = ρe_R + (ρv_R ⋅ ρv_R) / (2 * ρ_R)
-    return ConservationProps(ρ_R, ρv_R, ρE_R)
+    return ConservedProps(ρ_R, ρv_R, ρE_R)
 end
 
-function state_behind(state_L::PrimitiveProps, n̂, t̂; gas::CaloricallyPerfectGas = DRY_AIR)
+function state_behind(sL::PrimitiveProps, n̂, t̂; gas::CaloricallyPerfectGas = DRY_AIR)
     @assert ≈(t̂ ⋅ n̂, 0.0, atol = eps(Float64)) "tangent and normal vectors should be normal to each other."
     # mach number change
-    M_n_R = (state_L.M ⋅ n̂) * shock_normal_mach_ratio(state_L.M, n̂; gas = gas)
-    M_t_R = (state_L.M ⋅ t̂) * shock_tangent_mach_ratio(state_L.M, n̂; gas = gas)
+    M_n_R = (mach_number(sL; gas = gas) ⋅ n̂) * shock_normal_mach_ratio(sL.M, n̂; gas = gas)
+    M_t_R =
+        (mach_number(sL; gas = gas) ⋅ t̂) * shock_tangent_mach_ratio(sL.M, n̂; gas = gas)
     M_R = M_n_R * n̂ + M_t_R * t̂
     # density and temperature change
-    ρ_R = state_L.ρ * shock_density_ratio(state_L.M, n̂; gas = gas)
-    T_R = state_L.T * shock_temperature_ratio(state_L.M, n̂; gas = gas)
+    ρ_R = density(sL) * shock_density_ratio(sL.M, n̂; gas = gas)
+    T_R = temperature(sL) * shock_temperature_ratio(sL.M, n̂; gas = gas)
     return PrimitiveProps(ρ_R, M_R, T_R)
 end
 
@@ -129,7 +126,7 @@ end
 function conserved_state_behind(state_L, n̂, t̂; gas::CaloricallyPerfectGas = DRY_AIR)
     @assert ≈(t̂ ⋅ n̂, 0.0, atol = eps(Float64)) "tangent and normal vectors should be normal to each other."
     ρv_L = state_L[2:end-1]
-    ρe_L = internal_energy_density(state_L[1], ρv_L, state_L[end])
+    ρe_L = static_internal_energy_density(state_L[1], ρv_L, state_L[end])
     # find the speed of sound w/o units :)
     # I don't actually know how well this plays with ad tools e.g. zygote
     T_L = ρe_L / (state_L[1] * ustrip(_units_cvcp, gas.c_v))
