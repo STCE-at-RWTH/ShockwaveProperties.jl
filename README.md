@@ -29,4 +29,7 @@ The test suite does some basic dimensional analysis -- the speed of sound should
 - Extend this module with routines to compute interactions between shock waves
 - Integrate this module into a larger project that can handle time-dependent situations and simulations.
 
+# Related Packages
 
+- [Unitful.jl](https://github.com/PainterQubits/Unitful.jl)
+- [ChainRules.jl](https://github.com/JuliaDiff/ChainRules.jl)
