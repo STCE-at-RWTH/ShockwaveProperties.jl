@@ -71,6 +71,25 @@ end
 PrimitiveState = PrimitiveProps
 
 """
+    PrimitiveProps(ρ::Density, M::AbstractVector{NoDims}, T::Temperature)
+
+Construct a `PrimitiveProps` and convert a vector of `NoUnits` to scalars.
+"""
+function PrimitiveProps(ρ::U1, M::AbstractVector{Quantity{Float64, NoDims, U2}}, T::U3) where {U1<:Density, U2, U3<:Temperature}
+    return PrimitiveProps(ρ, uconvert.(NoUnits, M), T)
+end
+
+"""
+    PrimitiveProps(ρ::Density, M::Vector{NoDims}, P::Pressure, gas::CaloricallyPerfectGas)
+
+Construct a PrimitiveProps from `[ρ, M, P]`. 
+"""
+function PrimitiveProps(ρ::U1, M::AbstractVector{Quantity{Float64, NoDims, U2}}, P::U3, gas::CaloricallyPerfectGas) where {U1<:Density, U2, U3<:Pressure}
+    T = P / (ρ * gas.R)
+    return PrimitiveProps(ρ, uconvert.(NoUnits, M), T)
+end
+
+"""
     PrimitiveProps(ρ::Float64, M::Vector{Float64}, T::Float64)
 Construct a PrimitiveProps and assign the default units.
 """
@@ -259,8 +278,12 @@ end
 
 Compute the total enthalpy at ``u=[ρ, ρv, ρE]``.
 """
-function total_enthalpy_density(ρ, ρv, ρE; gas::CaloricallyPerfectGas)
+function total_enthalpy_density(ρ::Density, ρv::AbstractVector{T}, ρE::EnergyDensity; gas::CaloricallyPerfectGas) where {T<:MomentumDensity}
     return ρE + pressure(static_internal_energy_density(ρ, ρv, ρE); gas)
+end
+
+function total_enthalpy_density(ρ, ρv, ρE; gas::CaloricallyPerfectGas)
+    return ρE + ustrip(pressure(static_internal_energy_density(ρ, ρv, ρE); gas))
 end
 
 function total_enthalpy_density(state; gas::CaloricallyPerfectGas)
