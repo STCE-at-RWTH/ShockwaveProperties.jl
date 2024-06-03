@@ -381,9 +381,14 @@ speed_of_sound(ρ::Density, P::Pressure; gas::CaloricallyPerfectGas) = sqrt(gas.
 
 Compute the speed of sound from conserved state properties.
 """
-function speed_of_sound(ρ, ρv::AbstractVector, ρE; gas::CaloricallyPerfectGas)
+function speed_of_sound(ρ::Real, ρv::AbstractVector{<:Real}, ρE::Real; gas::CaloricallyPerfectGas)
+    return speed_of_sound(ρ, ustrip(pressure(ρ, ρv, ρE; gas)); gas)
+end
+
+function speed_of_sound(ρ::Density, ρv::AbstractVector{<:MomentumDensity}, ρE::EnergyDensity; gas::CaloricallyPerfectGas)
     return speed_of_sound(ρ, pressure(ρ, ρv, ρE; gas); gas)
 end
+
 
 """
     speed_of_sound(state; gas::CaloricallyPerfectGas)
