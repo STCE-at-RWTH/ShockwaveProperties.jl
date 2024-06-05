@@ -44,15 +44,20 @@ u_R = state_behind(u_L, n̂, t̂)
 ```
 
 ## Tests
+
 The test suite does some basic dimensional analysis -- the speed of sound should be a velocity, pressure should be a pressure, etc. Additionally, it tests the Rankine-Hugoniot conditions for a stable shock and verifies some algebraic properties of the Billig shockwave parametrization.
 
-# Development Goals
+## Development Goals
 
 - Extend this module with routines to compute interactions between shock waves
 - Integrate this module into a larger project that can handle time-dependent situations and simulations.
 
-# Related Packages
+## Related Packages
 
 - [Euler2D.jl](https://github.com/STCE-at-RWTH/Euler2D.jl)
 - [Unitful.jl](https://github.com/PainterQubits/Unitful.jl)
 - [ChainRules.jl](https://github.com/JuliaDiff/ChainRules.jl)
+
+## Contributing
+
+Simply fork this repository and submit a pull request, should you wish.
