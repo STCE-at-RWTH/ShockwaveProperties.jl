@@ -217,28 +217,30 @@ specific_static_enthalpy(T::Temperature; gas::CaloricallyPerfectGas) = gas.c_p *
 
 Compute the specific static enthalpy.
 """
-function specific_static_enthalpy(state; gas::CaloricallyPerfectGas)
-    return specific_static_enthalpy(temperature(state; gas); gas)
+function specific_static_enthalpy(s::PrimitiveProps; gas::CaloricallyPerfectGas)
+    return specific_static_enthalpy(temperature(s; gas); gas)
 end
 
-enthalpy = specific_static_enthalpy
+function specific_static_enthalpy(u::ConservedProps; gas::CaloricallyPerfectGas)
+    return gas.γ * specific_static_internal_energy(u)
+end
 
 """
     specific_internal_energy(T; gas::CaloricallyPerfectGas)
 Computes the specific internal energy of a calorically perfect gas.
 """
-specific_internal_energy(T; gas::CaloricallyPerfectGas) = gas.c_v * Quantity(T, _units_T)
-specific_internal_energy(T::Temperature; gas::CaloricallyPerfectGas) = gas.c_v * T
+specific_static_internal_energy(T::Real; gas::CaloricallyPerfectGas) = gas.c_v * Quantity(T, _units_T)
+specific_static_internal_energy(T::Temperature; gas::CaloricallyPerfectGas) = gas.c_v * T
 
 """
     specific_internal_energy(state; gas::CaloricallyPerfectGas)
 Compute the internal energy (``e``) of a gas at a given state.
 """
-function specific_internal_energy(u::ConservedProps; gas = nothing)
+function specific_static_internal_energy(u::ConservedProps; gas = nothing)
     return static_internal_energy_density(u) / density(u)
 end
 
-function specific_internal_energy(s::PrimitiveProps; gas::CaloricallyPerfectGas)
+function specific_static_internal_energy(s::PrimitiveProps; gas::CaloricallyPerfectGas)
     return gas.c_v * temperature(s)
 end
 
@@ -281,7 +283,18 @@ function total_internal_energy_density(s::PrimitiveProps; gas::CaloricallyPerfec
     return static_internal_energy_density(s; gas) + density(s) * specific_KE
 end
 
-## TOTAL ENTHALPY DENSITY
+## TOTAL ENTHALPY
+"""
+    specific_total_enthalpy(state; gas::CaloricallyPerfectGas)
+
+Compute the specific total enthalpy at a state in a gas. This quantity is constant along the stagnation line.
+"""
+function specific_total_enthalpy(state; gas::CaloricallyPerfectGas)
+    v = velocity(state; gas)
+    return specific_static_enthalpy(state; gas) + (v ⋅ v) / 2
+end
+
+
 """ 
     total_enthalpy_density(ρ, ρv, ρE; gas::CaloricallyPerfectGas)
 
@@ -296,7 +309,12 @@ function total_enthalpy_density(
     return ρE + pressure(static_internal_energy_density(ρ, ρv, ρE); gas)
 end
 
-function total_enthalpy_density(ρ::Real, ρv::AbstractVector{<:Real}, ρE::Real; gas::CaloricallyPerfectGas)
+function total_enthalpy_density(
+    ρ::Real,
+    ρv::AbstractVector{<:Real},
+    ρE::Real;
+    gas::CaloricallyPerfectGas,
+)
     return ρE + ustrip(pressure(static_internal_energy_density(ρ, ρv, ρE); gas))
 end
 
@@ -311,7 +329,7 @@ end
 Compute the temperature at a given state in a gas.
 """
 function temperature(u::ConservedProps; gas::CaloricallyPerfectGas)
-    return specific_internal_energy(u; gas) / gas.c_v
+    return specific_static_internal_energy(u; gas) / gas.c_v
 end
 temperature(s::PrimitiveProps; gas = nothing) = s.T
 
@@ -329,13 +347,18 @@ pressure(ρ::Density, T::Temperature; gas::CaloricallyPerfectGas) = ρ * gas.R *
 
 """
     pressure(ρe; gas::CaloricallyPerfectGas)
-    pressure(ρ, ρv, ρE; gas::CaloricallyPerfectGas)
+
 Compute the pressure in a calorically perfect gas from its static internal energy density.
 """
 pressure(ρe::Real; gas::CaloricallyPerfectGas) = (gas.γ - 1) * Quantity(ρe, _units_ρE)
 pressure(ρe::EnergyDensity; gas::CaloricallyPerfectGas) = (gas.γ - 1) * ρe
 
 # we don't want to restrict this to avoid quantities
+"""
+    pressure(ρ, ρv, ρE; gas::CaloricallyPerfectGas)
+
+Compute the pressure at `u=[ρ, ρv, ρE]`. 
+"""
 function pressure(ρ::Number, ρv::AbstractVector, ρE::Number; gas::CaloricallyPerfectGas)
     return pressure(static_internal_energy_density(ρ, ρv, ρE); gas)
 end
@@ -381,14 +404,23 @@ speed_of_sound(ρ::Density, P::Pressure; gas::CaloricallyPerfectGas) = sqrt(gas.
 
 Compute the speed of sound from conserved state properties.
 """
-function speed_of_sound(ρ::Real, ρv::AbstractVector{<:Real}, ρE::Real; gas::CaloricallyPerfectGas)
+function speed_of_sound(
+    ρ::Real,
+    ρv::AbstractVector{<:Real},
+    ρE::Real;
+    gas::CaloricallyPerfectGas,
+)
     return speed_of_sound(ρ, ustrip(pressure(ρ, ρv, ρE; gas)); gas)
 end
 
-function speed_of_sound(ρ::Density, ρv::AbstractVector{<:MomentumDensity}, ρE::EnergyDensity; gas::CaloricallyPerfectGas)
+function speed_of_sound(
+    ρ::Density,
+    ρv::AbstractVector{<:MomentumDensity},
+    ρE::EnergyDensity;
+    gas::CaloricallyPerfectGas,
+)
     return speed_of_sound(ρ, pressure(ρ, ρv, ρE; gas); gas)
 end
-
 
 """
     speed_of_sound(state; gas::CaloricallyPerfectGas)

@@ -15,7 +15,7 @@ using Unitful
         @test pressure(v; gas = DRY_AIR) isa Unitful.Pressure
         @test temperature(v; gas = DRY_AIR) isa Unitful.Temperature
         @test (
-            specific_internal_energy(v; gas = DRY_AIR) isa
+            specific_static_internal_energy(v; gas = DRY_AIR) isa
             ShockwaveProperties.SpecificEnergy
         )
         @test (
@@ -36,8 +36,8 @@ using Unitful
         )
         @test all(velocity(v1; gas = DRY_AIR) .≈ velocity(v2; gas = DRY_AIR))
         @test (
-            specific_internal_energy(v1; gas = DRY_AIR) ≈
-            specific_internal_energy(v2; gas = DRY_AIR)
+            specific_static_internal_energy(v1; gas = DRY_AIR) ≈
+            specific_static_internal_energy(v2; gas = DRY_AIR)
         )
         @test speed_of_sound(v1; gas = DRY_AIR) ≈ speed_of_sound(v2; gas = DRY_AIR)
     end

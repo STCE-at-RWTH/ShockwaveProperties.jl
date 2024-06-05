@@ -13,7 +13,7 @@ export BilligShockParametrization
 # gas properties
 export CaloricallyPerfectGas
 export temperature, pressure, speed_of_sound
-export specific_static_enthalpy, specific_internal_energy
+export specific_static_enthalpy, specific_static_internal_energy
 export static_internal_energy_density
 export total_internal_energy_density, total_enthalpy_density
 
