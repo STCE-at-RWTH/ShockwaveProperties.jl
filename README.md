@@ -30,7 +30,7 @@ Other properties can be directly computed:
 - `static_enthalpy_density(u; gas)`: Computes the static enthalpy density of `u`. Does **NOT** include kinetic energy!
 - `total_enthalpy_density(u; gas)`: Computes total enthalpy density of `u`. **DOES** include kinetic energy!
 
-"Specific" properties are related to the volume of a state, rather than its mass.
+"Specific" properties are related to the mass of a state, rather than its volume.
 
 - `specific_internal_energy(u; gas)`
 - `specific_static_enthalpy(u; gas)`
