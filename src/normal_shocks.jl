@@ -1,7 +1,7 @@
 """
 **Equation 4.8** from Anderson&Anderson
 
-Computes the density change across a shock wave. 
+Computes the density change across a _stationary_ shock wave. 
 The incoming flow has Mach number(s) ``M=[M_x, M_y]`` and the outward (away from body) normal is ``n̂``.
 """
 function shock_density_ratio(M, n̂; gas::CaloricallyPerfectGas = DRY_AIR)
@@ -12,7 +12,7 @@ end
 """
 **Equation 4.9** from Anderson&Anderson
 
-Computes the pressure ratio across a shock wave.
+Computes the pressure ratio across a _stationary_ shock wave.
 The incoming flow has Mach number(s) ``M=[M_x, M_y]`` and the outward (away from body) normal is ``n̂``.
 """
 function shock_pressure_ratio(M, n̂; gas::CaloricallyPerfectGas = DRY_AIR)
@@ -23,7 +23,7 @@ end
 """
 **Equation 4.10** from Anderson&Anderson
 
-Computes the normal Mach number ratio across a shock wave.
+Computes the normal Mach number ratio across a _stationary_ shock wave.
 The incoming flow has Mach number(s) ``M=[M_x, M_y]`` and the outward (away from body) normal is ``n̂``.
 """
 function shock_normal_mach_ratio(M, n̂; gas::CaloricallyPerfectGas = DRY_AIR)
@@ -34,7 +34,7 @@ function shock_normal_mach_ratio(M, n̂; gas::CaloricallyPerfectGas = DRY_AIR)
 end
 
 """
-Computes the normal velocity ratio across a shock wave.
+Computes the normal velocity ratio across a _stationary_ shock wave.
 The incoming flow has Mach number(s) ``M=[M_x, M_y]`` and the outward (away from body) normal is ``n̂``.
 
 Derived from speed of sound proportional to the square root of temperature.
@@ -46,7 +46,7 @@ Useful for computing momentum ratio.
 end
 
 """
-Computes the tangential mach number ratio across a shock wave.
+Computes the tangential mach number ratio across a _stationary_ shock wave.
 The incoming flow has Mach number(s) ``M=[M_x, M_y]`` and the outward (away from body) normal is ``n̂``.
 
 Derived from speed of sound proportional to the square root of temperature.
@@ -63,7 +63,7 @@ end
 """
 **Equation 4.11** from Anderson&Anderson
 
-Computes the temperature ratio across a shock wave.
+Computes the temperature ratio across a _stationary_ shock wave.
 The incoming flow has Mach number(s) ``M=[M_x, M_y]`` and the outward (away from body) normal is ``n̂``.
 """
 @inline function shock_temperature_ratio(M, n̂; gas::CaloricallyPerfectGas = DRY_AIR)
@@ -72,8 +72,8 @@ end
 
 """
     state_behind(state_L, n̂, t̂; gas::CaloricallyPerfectGas)
-Computes the gas state behind a shockwave.
-The outward (away from body) normal to the shockwave is ``n̂`` and the tangent to the shockwave is ``t̂``.
+Computes the gas state behind a _stationary_ shock wave.
+The outward (away from body) normal to the shock wave is ``n̂`` and the tangent to the shock wave is ``t̂``.
 """
 function state_behind(uL::ConservedProps, n̂, t̂; gas::CaloricallyPerfectGas = DRY_AIR)
     @assert ≈(t̂ ⋅ n̂, 0.0, atol = eps(Float64)) "tangent and normal vectors should be normal to each other."
