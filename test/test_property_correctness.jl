@@ -48,7 +48,7 @@ end
     u = ConservedProps(s1, DRY_AIR)
     s2 = PrimitiveProps(u, DRY_AIR)
     @test s1.ρ ≈ s2.ρ
-    @test s1.M ≈ s2.M
+    @test all(s1.M .≈ s2.M)
     @test s1.T ≈ s2.T
 end
 
@@ -121,16 +121,16 @@ end
 @testset "Speed of Sound" begin
     gas = DRY_AIR
     s = PrimitiveProps(1.225, [2.0, 0.0], 300.0)
-    u = ConservedProps(s; gas)
+    u = ConservedProps(s, gas)
 
-    a_s = speed_of_sound(s; gas)
-    a_u = speed_of_sound(u; gas)
+    a_s = speed_of_sound(s, gas)
+    a_u = speed_of_sound(u, gas)
 
-    a_s_pressure = speed_of_sound(density(s), pressure(s; gas); gas)
-    a_u_pressure = speed_of_sound(density(u), pressure(u; gas); gas)
+    a_s_pressure = speed_of_sound(density(s), pressure(s, gas), gas)
+    a_u_pressure = speed_of_sound(density(u), pressure(u, gas), gas)
 
-    a_s_ie = speed_of_sound(density(s), momentum_density(s; gas), total_internal_energy_density(s; gas); gas)
-    a_u_ie = speed_of_sound(density(u), momentum_density(u), total_internal_energy_density(u); gas)
+    a_s_ie = speed_of_sound(density(s), momentum_density(s, gas), total_internal_energy_density(s, gas), gas)
+    a_u_ie = speed_of_sound(density(u), momentum_density(u), total_internal_energy_density(u), gas)
 
     @test a_s ≈ a_u
     @test a_s_pressure ≈ a_u_pressure
