@@ -1,6 +1,7 @@
 module ShockwaveProperties
 
 using LinearAlgebra
+using StaticArrays
 using Unitful
 using UnitfulChainRules
 

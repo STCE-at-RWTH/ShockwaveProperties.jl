@@ -18,23 +18,23 @@ Property computation and conversion can be done via a myriad of functions. Any a
 Interrogating `ConservedProps` and `PrimitiveProps` is easily done via:
 
 - `density(u)`: Density of state `u`.
-- `momentum(u; gas)`: Momentum of state `u`
-- `velocity(u; gas)`: Velocity of state `u`
-- `mach_number(u; gas)`: Mach number of state `u`
-- `temperature(u; gas)`: Temperature of state `u`
-- `total_internal_energy_density(u; gas)`: Total (internal + kinetic) energy density of state `u`
+- `momentum(u, gas)`: Momentum of state `u`
+- `velocity(u, gas)`: Velocity of state `u`
+- `mach_number(u, gas)`: Mach number of state `u`
+- `temperature(u, gas)`: Temperature of state `u`
+- `total_internal_energy_density(u, gas)`: Total (internal + kinetic) energy density of state `u`
 
 Other properties can be directly computed:
 
-- `pressure(u; gas)`: also offers overloads for certain special cases.
-- `static_enthalpy_density(u; gas)`: Computes the static enthalpy density of `u`. Does **NOT** include kinetic energy!
-- `total_enthalpy_density(u; gas)`: Computes total enthalpy density of `u`. **DOES** include kinetic energy!
+- `pressure(u, gas)`: also offers overloads for certain special cases.
+- `static_enthalpy_density(u, gas)`: Computes the static enthalpy density of `u`. Does **NOT** include kinetic energy!
+- `total_enthalpy_density(u, gas)`: Computes total enthalpy density of `u`. **DOES** include kinetic energy!
 
 "Specific" properties are related to the mass of a state, rather than its volume.
 
-- `specific_internal_energy(u; gas)`
-- `specific_static_enthalpy(u; gas)`
-- `specific_total_enthalpy(u; gas)`
+- `specific_internal_energy(u, gas)`
+- `specific_static_enthalpy(u, gas)`
+- `specific_total_enthalpy(u, gas)`
 
 We can compute the change in properties across a shock wave from the shock normal $\hat n$ and shock tangent $\hat t$ via
 

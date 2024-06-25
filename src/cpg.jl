@@ -65,35 +65,39 @@ These completely determine the state of a calorically perfect gas.
 """
 struct PrimitiveProps{N,DTYPE,Q1<:Density{DTYPE},Q2<:Temperature{DTYPE}}
     ρ::Q1
-    M::NTuple{N,Float64}
+    M::SVector{N,DTYPE}
     T::Q2
-end
-
-"""
-    PrimitiveProps(ρ::Density, M::{Real, DimensionlessQuantity}, T::Temperature)
-
-Construct a `PrimitiveProps` and strip any vestigal units from the mach number.
-"""
-function PrimitiveProps(ρ::Density, M, T::Temperature)
-    return PrimitiveProps(ρ, tuple(uconvert.(NoUnits, M)...), T)
-end
-
-"""
-    PrimitiveProps(ρ::Density, M::Vector{NoDims}, P::Pressure, gas::CaloricallyPerfectGas)
-
-Construct a PrimitiveProps from `[ρ, M, P]`. 
-"""
-function PrimitiveProps(ρ::Density, M, P::Pressure, gas::CaloricallyPerfectGas)
-    T = P / (ρ * gas.R)
-    return PrimitiveProps(ρ, tuple(uconvert.(NoUnits, M)...), T)
 end
 
 """
     PrimitiveProps(ρ::Real, M, T::Real)
 Construct a PrimitiveProps and assign the default units.
 """
-function PrimitiveProps(ρ::Real, M, T::Real)
-    return PrimitiveProps(Quantity(ρ, _units_ρ), tuple(M...), Quantity(T, _units_T))
+function PrimitiveProps(ρ, M, T)
+    return PrimitiveProps(
+        Quantity(ρ, _units_ρ),
+        SVector{length(M)}(M),
+        Quantity(T, _units_T),
+    )
+end
+
+"""
+    PrimitiveProps(ρ::Density, M, T::Temperature)
+
+Construct a `PrimitiveProps` and strip any vestigal units from the mach number.
+"""
+function PrimitiveProps(ρ::Density, M, T::Temperature)
+    return PrimitiveProps(ρ, SVector{length(M)}(uconvert.(NoUnits, M)), T)
+end
+
+"""
+    PrimitiveProps(ρ::Density, M, P::Pressure, gas::CaloricallyPerfectGas)
+
+Construct a PrimitiveProps from `[ρ, M, P]`. 
+"""
+function PrimitiveProps(ρ::Density, M, P::Pressure, gas::CaloricallyPerfectGas)
+    T = P / (ρ * gas.R)
+    return PrimitiveProps(ρ, SVector{length(M)}(uconvert.(NoUnits, M)), T)
 end
 
 """
@@ -103,7 +107,7 @@ Construct a PrimitiveProps from a vector and assign default units.
 function PrimitiveProps(s::AbstractVector)
     return PrimitiveProps(
         Quantity(s[1], _units_ρ),
-        tuple(s[2:end-1]...),
+        s[2:end-1],
         Quantity(s[end], _units_T),
     )
 end
@@ -124,20 +128,28 @@ struct ConservedProps{
     U3<:EnergyDensity{DTYPE},
 }
     ρ::U1
-    ρv::NTuple{N,U2}
+    ρv::SVector{N,U2}
     ρE::U3
 end
 
 """
-    ConservedProps(ρ::Float64, ρv, ρE::Float64)
-Construct a ConservedState and assign the default units.
+    ConservedProps(ρ, ρv, ρE)
+Construct a ConservedState and assign the default units, if none are provided.
 """
-function ConservedProps(ρ::Real, ρv, ρE::Real)
+function ConservedProps(ρ, ρv, ρE)
     return ConservedProps(
         Quantity(Float64(ρ), _units_ρ),
-        tuple(Quantity.(ρv, _units_ρv)...),
+        SVector{length(ρv)}(Quantity.(ρv, _units_ρv)),
         Quantity(Float64(ρE), _units_ρE),
     )
+end
+
+function ConservedProps(
+    ρ::Density,
+    ρv::Union{Tuple{Vararg{U}},AbstractVector{U}},
+    ρE::EnergyDensity,
+) where {U<:MomentumDensity}
+    return ConservedProps(ρ, SVector{length(ρv)}(ρv), ρE)
 end
 
 """
@@ -147,7 +159,7 @@ Construct a ConservedProps from a vector and assign default units.
 function ConservedProps(u::AbstractVector)
     return ConservedProps(
         Quantity(u[1], _units_ρ),
-        tuple(Quantity.(u[2:end-1], _units_ρv)...),
+        Quantity.(u[2:end-1], _units_ρv),
         Quantity(u[end], _units_ρE),
     )
 end
@@ -404,21 +416,11 @@ speed_of_sound(ρ::Density, P::Pressure, gas::CaloricallyPerfectGas) = sqrt(gas.
 
 Compute the speed of sound from conserved state properties.
 """
-function speed_of_sound(
-    ρ::Real,
-    ρv,
-    ρE::Real,
-    gas::CaloricallyPerfectGas,
-)
+function speed_of_sound(ρ::Real, ρv, ρE::Real, gas::CaloricallyPerfectGas)
     return speed_of_sound(ρ, ustrip(pressure(ρ, ρv, ρE, gas)), gas)
 end
 
-function speed_of_sound(
-    ρ::Density,
-    ρv,
-    ρE::EnergyDensity;
-    gas::CaloricallyPerfectGas,
-)
+function speed_of_sound(ρ::Density, ρv, ρE::EnergyDensity, gas::CaloricallyPerfectGas)
     return speed_of_sound(ρ, pressure(ρ, ρv, ρE, gas), gas)
 end
 
@@ -462,8 +464,9 @@ end
 
 ### DISRESPECT UNITS AND WORK WITH STATES AS COLLECTIONS ###
 
-function state_to_vector(state::T) where {T}
-    return vcat(map(sym -> ustrip.(getfield(state, sym)), fieldnames(T))...)
+function state_to_vector(state)
+    v = map(sym -> ustrip.(getfield(state, sym)), fieldnames(typeof(state)))
+    return vcat(v[1], v[2]..., v[3])
 end
 
 """

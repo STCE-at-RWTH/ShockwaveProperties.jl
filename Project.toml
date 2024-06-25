@@ -1,14 +1,14 @@
 name = "ShockwaveProperties"
 uuid = "77d2bf28-a3e9-4b9c-9fcf-b85f74cc8a50"
 authors = ["Alex Fleming <alexander.fleming@rwth-aachen.de> and contributors"]
-version = "0.1.11"
+version = "0.2.0"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulChainRules = "f31437dd-25a7-4345-875f-756556e6935d"
-
 
 [compat]
 Unitful = "1"
