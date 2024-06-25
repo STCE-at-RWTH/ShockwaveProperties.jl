@@ -56,11 +56,13 @@ function CaloricallyPerfectGas(
 end
 
 """
+    PrimitiveProps{N, DTYPE, Q1<:Density, Q2<:Temperature}
+
 Properties that are easier to reason about than those in a `ConservedProps`. 
 These completely determine the state of a calorically perfect gas.
 
  - ``ρ``: Density of the gas.
- - ``M``: The mach number, represented as a tuple quantity.
+ - ``M``: The mach number, represented as a statically sized-vector quantity.
  - ``T``: The absolute temperature of the gas.
 """
 struct PrimitiveProps{N,DTYPE,Q1<:Density{DTYPE},Q2<:Temperature{DTYPE}}
@@ -113,11 +115,11 @@ function PrimitiveProps(s::AbstractVector)
 end
 
 """
-    ConservedProps{<:Density, <:MomentumDensity, <:EnergyDensity}
+    ConservedProps{N, DTYPE, <:Density, <:MomentumDensity, <:EnergyDensity}
 The conserved quantities in the Euler equations.
 
  - ``ρ``: Density of the gas.
- - ``ρv``: Momentum density of the gas, represented as a tuple quantity.
+ - ``ρv``: Momentum density of the gas, represented as a statically-sized quantity.
  - ``ρE``: The **sum** of the internal energy density of the gas and kinetic energy density of the moving gas.
 """
 struct ConservedProps{
