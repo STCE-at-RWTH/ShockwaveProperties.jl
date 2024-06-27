@@ -107,11 +107,7 @@ end
 Construct a PrimitiveProps from a vector and assign default units.
 """
 function PrimitiveProps(s::AbstractVector)
-    return PrimitiveProps(
-        Quantity(s[1], _units_ρ),
-        s[2:end-1],
-        Quantity(s[end], _units_T),
-    )
+    return PrimitiveProps(Quantity(s[1], _units_ρ), s[2:end-1], Quantity(s[end], _units_T))
 end
 
 """
@@ -466,9 +462,20 @@ end
 
 ### DISRESPECT UNITS AND WORK WITH STATES AS COLLECTIONS ###
 
-function state_to_vector(state)
-    v = map(sym -> ustrip.(getfield(state, sym)), fieldnames(typeof(state)))
-    return vcat(v[1], v[2]..., v[3])
+function state_to_vector(state::ConservedProps{N,T,U1,U2,U3}) where {N,T,U1,U2,U3}
+    SVector{N + 2}(
+        ustrip(_units_ρ, density(state)),
+        ustrip.(_units_ρv, momentum_density(state))...,
+        ustrip(_units_ρE, total_internal_energy_density(state)),
+    )
+end
+
+function state_to_vector(state::PrimitiveProps{N,T,U1,U2}) where {N,T,U1,U2}
+    SVector{N + 2}(
+        ustrip(_units_ρ, density(state)),
+        mach_number(state)...,
+        ustrip(_units_T, temperature(state)),
+    )
 end
 
 """
@@ -484,7 +491,7 @@ function primitive_state_vector(u, gas::CaloricallyPerfectGas)
     ρe = static_internal_energy_density(u[1], ρv, u[end])
     T = ρe / (u[1] * ustrip(_units_cvcp, gas.c_v))
     a = ustrip(u"m/s", speed_of_sound(T, gas))
-    return vcat(u[1], ρv / (u[1] * a), T)
+    return SVector{length(u)}(u[1], (ρv / (u[1] * a))..., T)
 end
 
 """
@@ -500,5 +507,5 @@ function conserved_state_vector(s, gas::CaloricallyPerfectGas)
     ρv = s[1] * s[2:end-1] * a
     ρe = s[1] * ustrip(_units_cvcp, gas.c_v) * s[end]
     ρE = ρe + ρv ⋅ ρv / (2 * s[1])
-    return vcat(s[1], ρv, ρE)
+    return SVector{length(s)}(s[1], ρv..., ρE)
 end
