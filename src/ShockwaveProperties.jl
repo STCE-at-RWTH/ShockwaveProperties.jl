@@ -3,6 +3,8 @@ module ShockwaveProperties
 using LinearAlgebra
 using StaticArrays
 using Unitful
+using Unitful: Temperature, Pressure, Density, Velocity, @derived_dimension
+using Unitful: 𝐋, 𝐓, 𝐌, 𝚯, 𝐍
 using UnitfulChainRules
 
 # constants
@@ -36,6 +38,7 @@ include("cpg.jl")
 # At 300K
 const DRY_AIR = CaloricallyPerfectGas(1004.9u"J/kg/K", 717.8u"J/kg/K", 0.0289647u"kg/mol")
 
+include("state_variables.jl")
 include("billig.jl")
 include("normal_shocks.jl")
 

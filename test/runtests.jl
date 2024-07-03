@@ -1,5 +1,6 @@
 using LinearAlgebra
 using ShockwaveProperties
+using StaticArrays
 using Test
 using Unitful
 
@@ -43,6 +44,18 @@ using Unitful
             @test speed_of_sound(v1, DRY_AIR) ≈ speed_of_sound(v2, DRY_AIR)
         end
     end
+
+    @testset "Convert Between Units" begin
+        v1 = fill(ConservedProps(1.0, (2.0, 3.0), 4.0), 2)
+        v2 = fill(ConservedProps(1.0u"lb/ft^3", Quantity.((1.0,1.0), u"lb/ft^2/s"), 4.0u"J/mm^3"), 2)
+        v1 .= v2
+        @test all(v1 .≈ v2)
+
+        v3 = similar(v2)
+        v3 .= v1
+
+        @test all(v1 .≈ v3)
+    end
     
     @testset "Convert Primitve ↔ Conserved" begin
         s1 = PrimitiveProps(1.225, [2.0, 0.0], 300.0)
@@ -54,8 +67,8 @@ using Unitful
     end
     
     @testset "Equivalency Between Unitful and Unitless" begin
-        n = [-1.0, 0]
-        t = [0.0, 1.0]
+        n = @SVector [-1.0, 0]
+        t = @SVector [0.0, 1.0]
         sL = PrimitiveProps(1.225, [2.0, 0.0], 300.0)
         sR = state_behind(sL, n, t, DRY_AIR)
         sL_nounits = state_to_vector(sL)
@@ -111,8 +124,8 @@ using Unitful
         # breaks down near β = 0
         # TODO investigate this.
         for θ ∈ range(0, π / 3; length = 40)
-            n = [-cos(θ), sin(θ)]
-            t = [0 1; -1 0] * n
+            n = @SVector [-cos(θ), sin(θ)]
+            t = @SMatrix([0 1; -1 0]) * n
             u_R = state_behind(u_L, n, t, DRY_AIR)
             # F(u_l)⋅n̂ - F(u_r)⋅n̂ = 0 ⟹ F(u_l)⋅n̂ = F(u_r)⋅n̂ 
             @test all(F(u_L) * n .≈ F(u_R) * n)

@@ -1,11 +1,8 @@
-using Unitful: Temperature, Pressure, Density, Velocity, @derived_dimension
-using Unitful: 𝐋, 𝐓, 𝐌, 𝚯, 𝐍
-
-@derived_dimension HeatCapacity 𝐋^2 * 𝐓^-2 * 𝚯^-1
-@derived_dimension MolarMass 𝐌 * 𝐍^-1
-@derived_dimension MomentumDensity 𝐌 * 𝐋^-2 * 𝐓^-1
-@derived_dimension SpecificEnergy 𝐋^2 * 𝐓^-2
-@derived_dimension EnergyDensity 𝐌 * 𝐋^-1 * 𝐓^-2
+@derived_dimension HeatCapacity 𝐋^2 * 𝐓^-2 * 𝚯^-1 true
+@derived_dimension MolarMass 𝐌 * 𝐍^-1 true
+@derived_dimension MomentumDensity 𝐌 * 𝐋^-2 * 𝐓^-1 true
+@derived_dimension SpecificEnergy 𝐋^2 * 𝐓^-2 true
+@derived_dimension EnergyDensity 𝐌 * 𝐋^-1 * 𝐓^-2 true
 
 # default units for certain quantities.
 const _units_cvcp = u"J/kg/K"
@@ -107,7 +104,18 @@ end
 Construct a PrimitiveProps from a vector and assign default units.
 """
 function PrimitiveProps(s::AbstractVector)
-    return PrimitiveProps(Quantity(s[1], _units_ρ), s[2:end-1], Quantity(s[end], _units_T))
+    N = length(u)
+    idcs = SVector{N - 2}(ntuple(i -> i + 1, N - 2))
+    return PrimitiveProps(Quantity(s[1], _units_ρ), s[idcs], Quantity(s[end], _units_T))
+end
+
+# convert to different units
+
+function Base.convert(
+    ::Type{PrimitiveProps{N,T,A1,A2}},
+    x::PrimitiveProps{N,T,B1,B2},
+) where {N,T,A1<:Density,A2<:Temperature,B1<:Density,B2<:Temperature}
+    PrimitiveProps(convert(A1, density(x)), mach_number(x), convert(A2, temperature(x)))
 end
 
 """
@@ -128,312 +136,62 @@ struct ConservedProps{
     ρ::U1
     ρv::SVector{N,U2}
     ρE::U3
+
+    function ConservedProps(
+        ρ::U1,
+        ρv::Union{StaticVector{N,U2},NTuple{N,U2}},
+        ρE::U3,
+    ) where {N,DTYPE,U1<:Density{DTYPE},U2<:MomentumDensity{DTYPE},U3<:EnergyDensity{DTYPE}}
+        return new{N,DTYPE,U1,U2,U3}(ρ, SVector{N}(ρv), ρE)
+    end
 end
 
 """
-    ConservedProps(ρ, ρv, ρE)
-Construct a ConservedState and assign the default units, if none are provided.
-"""
-function ConservedProps(ρ, ρv, ρE)
-    return ConservedProps(
-        Quantity(Float64(ρ), _units_ρ),
-        SVector{length(ρv)}(Quantity.(ρv, _units_ρv)),
-        Quantity(Float64(ρE), _units_ρE),
-    )
-end
-
-function ConservedProps(
-    ρ::Density,
-    ρv::Union{Tuple{Vararg{U}},AbstractVector{U}},
-    ρE::EnergyDensity,
-) where {U<:MomentumDensity}
-    return ConservedProps(ρ, SVector{length(ρv)}(ρv), ρE)
-end
-
-"""
-    ConservedProps(p::AbstractVector)
+    ConservedProps(u::AbstractVector{Real})
 Construct a ConservedProps from a vector and assign default units.
 """
-function ConservedProps(u::AbstractVector)
+function ConservedProps(u::AbstractVector{Real})
+    N = length(u)
+    idcs = SVector{N - 2}(ntuple(i -> i + 1, N - 2))
     return ConservedProps(
         Quantity(u[1], _units_ρ),
-        Quantity.(u[2:end-1], _units_ρv),
+        Quantity.(u[idcs], _units_ρv),
         Quantity(u[end], _units_ρE),
     )
 end
 
-## DENSITY
-
+# exclude the unitful constructor
 """
-    density(state)
-Compute the density at a given state in a gas.
+    ConservedProps(ρ, ρv, ρE)
+
+Construct a ConservedProps from the individual components and assign default units.
 """
-density(state) = state.ρ
-
-## MOMENTUM
-"""
-    momentum_density(state, gas::CaloricallyPerfectGas)
-
-Momentum in a gas at a given state.
-"""
-momentum_density(u::ConservedProps, gas = nothing) = u.ρv
-function momentum_density(s::PrimitiveProps, gas::CaloricallyPerfectGas)
-    v = velocity(s, gas)
-    return density(s) .* v
-end
-
-## VELOCITY
-
-"""
-    velocity(state, gas::CaloricallyPerfectGas)
-
-Velocity in a gas at a given state.
-"""
-function velocity(u::ConservedProps, gas = nothing)
-    return momentum_density(u) ./ density(u)
-end
-
-function velocity(s::PrimitiveProps, gas::CaloricallyPerfectGas)
-    return mach_number(s, gas) .* speed_of_sound(s, gas)
-end
-
-## MACH NUMBER
-
-"""
-    mach_number(state, gas::CaloricallyPerfectGas)
-
-Mach number in a gas at a given state.
-"""
-function mach_number(u::ConservedProps, gas::CaloricallyPerfectGas)
-    return uconvert.(NoUnits, velocity(u) ./ speed_of_sound(u, gas))
-end
-mach_number(s::PrimitiveProps, gas = nothing) = s.M
-
-## SPECIFIC STATIC ENTHALPY AND INTERNAL ENERGY
-
-"""
-    specific_static_enthalpy(T, gas::CaloricallyPerfectGas)
-Computes the static enthalpy of a calorically perfect gas at a temperature ``T`` (default in Kelvin).
-"""
-function specific_static_enthalpy(T::Real, gas::CaloricallyPerfectGas)
-    return gas.c_p * Quantity(T, _units_T)
-end
-specific_static_enthalpy(T::Temperature, gas::CaloricallyPerfectGas) = gas.c_p * T
-
-# there might be a better way for different property sets...
-"""
-    specific_static_enthalpy(state, gas::CaloricallyPerfectGas)
-
-Compute the specific static enthalpy.
-"""
-function specific_static_enthalpy(s::PrimitiveProps, gas::CaloricallyPerfectGas)
-    return specific_static_enthalpy(temperature(s, gas), gas)
-end
-
-function specific_static_enthalpy(u::ConservedProps, gas::CaloricallyPerfectGas)
-    return gas.γ * specific_static_internal_energy(u)
-end
-
-"""
-    specific_internal_energy(T, gas::CaloricallyPerfectGas)
-Computes the specific internal energy of a calorically perfect gas.
-"""
-function specific_static_internal_energy(T::Real, gas::CaloricallyPerfectGas)
-    gas.c_v * Quantity(T, _units_T)
-end
-specific_static_internal_energy(T::Temperature, gas::CaloricallyPerfectGas) = gas.c_v * T
-
-"""
-    specific_internal_energy(state, gas::CaloricallyPerfectGas)
-Compute the internal energy (``e``) of a gas at a given state.
-"""
-function specific_static_internal_energy(u::ConservedProps, gas = nothing)
-    return static_internal_energy_density(u) / density(u)
-end
-
-function specific_static_internal_energy(s::PrimitiveProps, gas::CaloricallyPerfectGas)
-    return gas.c_v * temperature(s)
-end
-
-## STATIC INTERNAL ENERGY DENSITY
-
-"""
-    static_internal_energy_density(ρ, ρv, ρE)
-    static_internal_energy_density(state, gas)
-
-Compute the static internal energy density (``ρe``) from conserved state quantities.
-"""
-static_internal_energy_density(ρ, ρv, ρE) = ρE - (ρv ⋅ ρv) / (2 * ρ)
-
-function static_internal_energy_density(u::ConservedProps, gas = nothing)
-    return static_internal_energy_density(
-        density(u),
-        momentum_density(u),
-        total_internal_energy_density(u),
+function ConservedProps(ρ::Real, ρv, ρE::Real)
+    return ConservedProps(
+        Quantity(ρ, _units_ρ),
+        Quantity.(SVector{length(ρv)}(ρv), _units_ρv),
+        Quantity(ρE, _units_ρE),
     )
 end
 
-function static_internal_energy_density(s::PrimitiveProps, gas::CaloricallyPerfectGas)
-    return density(s) * gas.c_v * temperature(s)
-end
-
-## TOTAL INTERNAL ENERGY DENSITY
-
-"""
-    total_internal_energy_density(state, gas::CaloricallyPerfectGas)
-
-Compute the total internal energy density at a given state in a gas.
-"""
-function total_internal_energy_density(u::ConservedProps, gas = nothing)
-    return u.ρE
-end
-
-function total_internal_energy_density(s::PrimitiveProps, gas::CaloricallyPerfectGas)
-    v = velocity(s, gas)
-    specific_KE = v ⋅ v / 2
-    return static_internal_energy_density(s, gas) + density(s) * specific_KE
-end
-
-## TOTAL ENTHALPY
-"""
-    specific_total_enthalpy(state, gas::CaloricallyPerfectGas)
-
-Compute the specific total enthalpy at a state in a gas. This quantity is constant along the stagnation line.
-"""
-function specific_total_enthalpy(state, gas::CaloricallyPerfectGas)
-    v = velocity(state, gas)
-    return specific_static_enthalpy(state, gas) + (v ⋅ v) / 2
-end
-
-""" 
-    total_enthalpy_density(ρ, ρv, ρE, gas::CaloricallyPerfectGas)
-
-Compute the total enthalpy at ``u=[ρ, ρv, ρE]``.
-"""
-function total_enthalpy_density(
-    ρ::Density,
-    ρv::AbstractVector{<:MomentumDensity},
-    ρE::EnergyDensity,
-    gas::CaloricallyPerfectGas,
-)
-    return ρE + pressure(static_internal_energy_density(ρ, ρv, ρE), gas)
-end
-
-function total_enthalpy_density(
-    ρ::Real,
-    ρv::AbstractVector{<:Real},
-    ρE::Real,
-    gas::CaloricallyPerfectGas,
-)
-    return ρE + ustrip(pressure(static_internal_energy_density(ρ, ρv, ρE), gas))
-end
-
-function total_enthalpy_density(state, gas::CaloricallyPerfectGas)
-    return total_internal_energy_density(state, gas) + pressure(state, gas)
-end
-
-## TEMPERATURE
-
-"""
-    temperature(state, gas::CaloricallyPerfectGas)
-Compute the temperature at a given state in a gas.
-"""
-function temperature(u::ConservedProps, gas::CaloricallyPerfectGas)
-    return specific_static_internal_energy(u, gas) / gas.c_v
-end
-temperature(s::PrimitiveProps, gas = nothing) = s.T
-
-## PRESSURE
-
-"""
-    pressure(ρ, T, gas::CaloricallyPerfectGas)
-Compute the pressure in a calorically perfect gas from its density and temperature.
-"""
-function pressure(ρ::Real, T::Real, gas::CaloricallyPerfectGas)
-    return Quantity(ρ, _units_ρ) * gas.R * Quantity(T, _units_T)
-end
-
-pressure(ρ::Density, T::Temperature, gas::CaloricallyPerfectGas) = ρ * gas.R * T
-
-"""
-    pressure(ρe, gas::CaloricallyPerfectGas)
-
-Compute the pressure in a calorically perfect gas from its static internal energy density.
-"""
-pressure(ρe::Real, gas::CaloricallyPerfectGas) = (gas.γ - 1) * Quantity(ρe, _units_ρE)
-pressure(ρe::EnergyDensity, gas::CaloricallyPerfectGas) = (gas.γ - 1) * ρe
-
-# we don't want to restrict this to avoid quantities
-"""
-    pressure(ρ, ρv, ρE, gas::CaloricallyPerfectGas)
-
-Compute the pressure at `u=[ρ, ρv, ρE]`. 
-"""
-function pressure(ρ, ρv, ρE, gas::CaloricallyPerfectGas)
-    return pressure(static_internal_energy_density(ρ, ρv, ρE), gas)
-end
-
-"""
-    pressure(state, gas::CaloricallyPerfectGas)
-Compute the pressure at a given state in a gas.
-"""
-function pressure(u::ConservedProps, gas::CaloricallyPerfectGas)
-    return pressure(static_internal_energy_density(u), gas)
-end
-
-function pressure(s::PrimitiveProps, gas::CaloricallyPerfectGas)
-    return pressure(density(s), temperature(s), gas)
-end
-
-## SPEED OF SOUND
-
-"""
-    speed_of_sound(T, gas::CaloricallyPerfectGas)
-Computes the speed of sound in an ideal gas at a temperature ``T``. 
-
-*We assume that the gas is a non-dispersive medium.*
-"""
-function speed_of_sound(T::Real, gas::CaloricallyPerfectGas)
-    return sqrt(gas.γ * gas.R * Quantity(T, _units_T))
-end
-speed_of_sound(T::Temperature, gas::CaloricallyPerfectGas) = sqrt(gas.γ * gas.R * T)
-
-"""
-    speed_of_sound(ρ, P, gas::CaloricallyPerfectGas)
-Comptue the speed of sound in an ideal gas at density ``ρ`` and pressure ``P``.
-
-*We assume that the gas is a non-dispersive medium.*
-"""
-function speed_of_sound(ρ::Real, P::Real, gas::CaloricallyPerfectGas)
-    return sqrt(gas.γ * Quantity(P, _units_P) / Quantity(ρ, _units_ρ))
-end
-speed_of_sound(ρ::Density, P::Pressure, gas::CaloricallyPerfectGas) = sqrt(gas.γ * P / ρ)
-
-"""
-    speed_of_sound(ρ, ρv, ρE, gas::CaloricallyPerfectGas)
-
-Compute the speed of sound from conserved state properties.
-"""
-function speed_of_sound(ρ::Real, ρv, ρE::Real, gas::CaloricallyPerfectGas)
-    return speed_of_sound(ρ, ustrip(pressure(ρ, ρv, ρE, gas)), gas)
-end
-
-function speed_of_sound(ρ::Density, ρv, ρE::EnergyDensity, gas::CaloricallyPerfectGas)
-    return speed_of_sound(ρ, pressure(ρ, ρv, ρE, gas), gas)
-end
-
-"""
-    speed_of_sound(state, gas::CaloricallyPerfectGas)
-Compute the speed of sound in a gas at a given state. 
-
-*We assume that the gas is a non-dispersive medium.*
-"""
-function speed_of_sound(s::PrimitiveProps, gas::CaloricallyPerfectGas)
-    return speed_of_sound(temperature(s, gas), gas)
-end
-
-function speed_of_sound(u::ConservedProps, gas::CaloricallyPerfectGas)
-    return speed_of_sound(density(u), pressure(u, gas), gas)
+function Base.convert(
+    ::Type{ConservedProps{N,T,A1,A2,A3}},
+    x::ConservedProps{N,T,B1,B2,B3},
+) where {
+    N,
+    T,
+    A1<:Density,
+    A2<:MomentumDensity,
+    A3<:EnergyDensity,
+    B1<:Density,
+    B2<:MomentumDensity,
+    B3<:EnergyDensity,
+}
+    return ConservedProps(
+        convert(A1, density(x)),
+        convert.(A2, momentum_density(x)),
+        convert(A3, total_internal_energy_density(x)),
+    )
 end
 
 ## CONVERT PROPERTY REPRESENTATIONS
@@ -458,6 +216,32 @@ function ConservedProps(s::PrimitiveProps, gas::CaloricallyPerfectGas)
     v = s.M .* speed_of_sound(s, gas)
     e = gas.c_v .* temperature(s, gas)
     return ConservedProps(s.ρ, s.ρ .* v, s.ρ * (e + v ⋅ v / 2))
+end
+
+## TEST EQUALITY
+
+function Base.isapprox(a::ConservedProps, b::ConservedProps; kwargs...)
+    return (
+        isapprox(a.ρ, b.ρ; kwargs...) &&
+        all(isapprox.(a.ρv, b.ρv; kwargs...)) &&
+        isapprox(a.ρE, b.ρE; kwargs...)
+    )
+end
+
+function Base.:(==)(a::ConservedProps, b::ConservedProps)
+    return (a.ρ == b.ρ && all(a.ρv .== b.ρv) && a.ρE == b.ρE)
+end
+
+function Base.isapprox(a::PrimitiveProps, b::PrimitiveProps; kwargs...)
+    return (
+        isapprox(a.ρ, b.ρ; kwargs...) &&
+        all(isapprox.(a.M, b.M; kwargs...)) &&
+        isapprox(a.T, b.T; kwargs...)
+    )
+end
+
+function Base.:(==)(a::PrimitiveProps, b::PrimitiveProps)
+    return (a.ρ == b.ρ && all(a.M .== b.M) && a.T == b.T)
 end
 
 ### DISRESPECT UNITS AND WORK WITH STATES AS COLLECTIONS ###
