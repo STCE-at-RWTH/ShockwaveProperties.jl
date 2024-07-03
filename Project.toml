@@ -1,7 +1,7 @@
 name = "ShockwaveProperties"
 uuid = "77d2bf28-a3e9-4b9c-9fcf-b85f74cc8a50"
 authors = ["Alex Fleming <alexander.fleming@rwth-aachen.de> and contributors"]
-version = "0.2.1"
+version = "0.2.2"
 
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
