@@ -147,10 +147,10 @@ struct ConservedProps{
 end
 
 """
-    ConservedProps(u::AbstractVector{Real})
+    ConservedProps(u::AbstractVector{<:Real})
 Construct a ConservedProps from a vector and assign default units.
 """
-function ConservedProps(u::AbstractVector{Real})
+function ConservedProps(u::AbstractVector{<:Real})
     N = length(u)
     idcs = SVector{N - 2}(ntuple(i -> i + 1, N - 2))
     return ConservedProps(
