@@ -19,6 +19,10 @@ export temperature, pressure, speed_of_sound
 export specific_static_enthalpy, specific_static_internal_energy
 export static_internal_energy_density
 export total_internal_energy_density, total_enthalpy_density
+export kinematic_viscosity, thermal_diffusivity
+
+# dimensionless numbers
+export reynolds_number, froude_number, fourier_number, prandtl_number
 
 # representations
 export ConservedProps, PrimitiveProps
@@ -36,7 +40,7 @@ export primitive_state_vector, primitive_state_behind
 include("cpg.jl")
 
 # At 300K
-const DRY_AIR = CaloricallyPerfectGas(1004.9u"J/kg/K", 717.8u"J/kg/K", 0.0289647u"kg/mol")
+const DRY_AIR = CaloricallyPerfectGas(1004.9u"J/kg/K", 717.8u"J/kg/K", 0.0289647u"kg/mol", 0.02624u"W/m/K", 1.846e-5u"kg/m/s")
 
 include("state_variables.jl")
 include("billig.jl")

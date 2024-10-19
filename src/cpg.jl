@@ -1,5 +1,7 @@
+using Unitful: Length, Time, MolarMass, DynamicViscosity
 @derived_dimension HeatCapacity 𝐋^2 * 𝐓^-2 * 𝚯^-1 true
-@derived_dimension MolarMass 𝐌 * 𝐍^-1 true
+@derived_dimension ThermalConductivity 𝐌 * 𝐋 * 𝐓^-3 * 𝚯^-1 true
+# @derived_dimension MolarMass 𝐌 * 𝐍^-1 true
 @derived_dimension MomentumDensity 𝐌 * 𝐋^-2 * 𝐓^-1 true
 @derived_dimension SpecificEnergy 𝐋^2 * 𝐓^-2 true
 @derived_dimension EnergyDensity 𝐌 * 𝐋^-1 * 𝐓^-2 true
@@ -11,6 +13,8 @@ const _units_ρ = u"kg/m^3"
 const _units_v = u"m/s"
 const _units_T = u"K"
 const _units_P = u"Pa"
+const _units_k = u"W/m/K"
+const _units_μ = u"Pa*s"
 
 const _units_ρv = _units_ρ * _units_v
 const _units_int_e = _units_cvcp * _units_T
@@ -25,32 +29,60 @@ Provides the properties of a calorically perfect gas (or mixture of gases).
  - ``γ``: Heat capacity ratio
  - ``R``: Specific gas constant
 """
-struct CaloricallyPerfectGas{U1<:HeatCapacity,U2<:MolarMass}
+struct CaloricallyPerfectGas{
+    U1<:HeatCapacity,
+    U2<:MolarMass,
+    U3<:ThermalConductivity,
+    U4<:DynamicViscosity,
+}
     c_p::U1
     c_v::U1
     ℳ::U2
 
     γ::Float64
     R::U1
+
+    k::U3
+    μ::U4
 end
 
-function CaloricallyPerfectGas(c_p, c_v, ℳ)
+function CaloricallyPerfectGas(c_p, c_v, ℳ, k, μ)
     q_cp = Quantity(c_p, _units_cvcp)
     q_cv = Quantity(c_v, _units_cvcp)
     q_ℳ = Quantity(ℳ, _units_ℳ)
     q_R = q_cp - q_cv
-    return CaloricallyPerfectGas{typeof(q_cp),typeof(q_ℳ)}(q_cp, q_cv, q_ℳ, c_p / c_v, q_R)
+    q_k = Quantity(k, _units_k)
+    q_μ = Quantity(k, _units_μ)
+    return CaloricallyPerfectGas{typeof(q_cp),typeof(q_ℳ),typeof(q_k),typeof(q_μ)}(
+        q_cp,
+        q_cv,
+        q_ℳ,
+        c_p / c_v,
+        q_R,
+        q_k,
+        q_μ,
+    )
 end
 
 function CaloricallyPerfectGas(
     c_p::T,
     c_v::T,
     ℳ::U,
-) where {T<:HeatCapacity,U<:Unitful.MolarMass}
+    k::V,
+    μ::W,
+) where {T<:HeatCapacity,U<:MolarMass,V<:ThermalConductivity,W<:DynamicViscosity}
     R = c_p - c_v
     γ = c_p / c_v
-    return CaloricallyPerfectGas{T,U}(c_p, c_v, ℳ, γ, R)
+    return CaloricallyPerfectGas{T,U,V,W}(c_p, c_v, ℳ, γ, R, k, μ)
 end
+
+## DIMENSIONLESS NUMBERS THAT DEPEND ON GAS PROPERTIES
+
+function prandtl_number(gas::CaloricallyPerfectGas)
+    return uconvert(Unitful.NoUnits, gas.c_p * gas.μ / gas.k)
+end
+
+## STATES
 
 """
     PrimitiveProps{N, DTYPE, Q1<:Density, Q2<:Temperature}

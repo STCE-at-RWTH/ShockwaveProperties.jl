@@ -1,3 +1,5 @@
+using Unitful: Length, Acceleration
+
 ## DENSITY
 
 """
@@ -271,3 +273,44 @@ end
 function speed_of_sound(u::ConservedProps, gas::CaloricallyPerfectGas)
     return speed_of_sound(density(u), pressure(u, gas), gas)
 end
+
+## KINEMATIC VISCOSITY
+
+function kinematic_viscosity(s, gas::CaloricallyPerfectGas)
+    return gas.μ / density(s)
+end
+
+## THERMAL DIFFUSIVITY
+
+function thermal_diffusivity(s, gas::CaloricallyPerfectGas)
+    return gas.k / (gas.c_p * density(s))
+end
+
+## DIMENSIONLESS NUMBERS THAT DEPEND ON FLUID STATES
+
+function reynolds_number(s, gas::CaloricallyPerfectGas, D::T) where {T<:Length}
+    return uconvert(Unitful.NoUnits, density(s) * norm(velocity(s, gas)) * D / gas.μ)
+end
+
+function froude_number(
+    s,
+    gas,
+    external_force_field::U1,
+    L::U2,
+) where {U1<:Acceleration,U2<:Length}
+    return uconvert(
+        Unitful.NoUnits,
+        norm(velocity(s, gas)) / sqrt(norm(external_force_field) * L),
+    )
+end
+
+function fourier_number(
+    s,
+    gas::CaloricallyPerfectGas,
+    t::U1,
+    L::U2,
+) where {U1<:Time,U2<:Length}
+    return uconvert(Unitful.NoUnits, thermal_diffusivity(s, gas) * t / L^2)
+end
+
+
