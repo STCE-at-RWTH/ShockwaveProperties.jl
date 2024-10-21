@@ -5,7 +5,6 @@ using StaticArrays
 using Unitful
 using Unitful: Temperature, Pressure, Density, Velocity, @derived_dimension
 using Unitful: 𝐋, 𝐓, 𝐌, 𝚯, 𝐍
-using UnitfulChainRules
 
 # constants
 export DRY_AIR
