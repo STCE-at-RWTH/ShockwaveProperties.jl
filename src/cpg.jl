@@ -136,7 +136,7 @@ end
 Construct a PrimitiveProps from a vector and assign default units.
 """
 function PrimitiveProps(s::AbstractVector)
-    N = length(u)
+    N = length(s)
     idcs = SVector{N - 2}(ntuple(i -> i + 1, N - 2))
     return PrimitiveProps(Quantity(s[1], _units_ρ), s[idcs], Quantity(s[end], _units_T))
 end

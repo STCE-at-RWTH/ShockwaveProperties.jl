@@ -5,6 +5,14 @@ using Test
 using Unitful
 
 @testset verbose = true "ShockwaveProperties.jl" begin
+
+    @testset "Construct from Containers" begin
+        s1 = PrimitiveProps(SVector(1.225, 2.0, 0.0, 300.0))
+        s2 = PrimitiveProps([1.225, 2.0, 0.0, 300.0])
+        # just use some garbage numbers here
+        u1 = ConservedProps(SVector(1.225, 1.0, 1.0, 2.0))
+        u2 = ConservedProps([1.225, 1.0, 1.0, 2.0])
+    end
     @testset "Dimensional Analysis" begin
         # giving different units shouldn't mess with the actual results
         # these are the same state
